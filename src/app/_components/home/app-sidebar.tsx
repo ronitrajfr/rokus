@@ -1,10 +1,11 @@
+"use client";
 import * as React from "react";
-
 import { SearchForm } from "@/components/ui/search-form";
 import { VersionSwitcher } from "@/components/ui/version-switcher";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -15,131 +16,76 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
+import SidebarFooterButton from "@/components/ui/sidebar-footer-button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 // This is sample data.
 const data = {
-  versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
+  versions: ["Personal"],
+
   navMain: [
     {
-      title: "Getting Started",
+      title: "RECENTS",
       url: "#",
       items: [
         {
-          title: "Installation",
+          title: "Build a SaaS Landing Page",
           url: "#",
         },
         {
-          title: "Project Structure",
+          title: "Fix Next.js Hydration Error",
+          url: "#",
+        },
+        {
+          title: "System Design: URL Shortener",
+          url: "#",
+        },
+        {
+          title: "Learn Redis Caching",
           url: "#",
         },
       ],
     },
+
     {
-      title: "Build Your Application",
+      title: "SPACES",
       url: "#",
       items: [
         {
-          title: "Routing",
+          title: "Startup Ideas",
           url: "#",
         },
         {
-          title: "Data Fetching",
+          title: "Interview Prep",
+          url: "#",
+        },
+        {
+          title: "College Projects",
+          url: "#",
+        },
+      ],
+    },
+
+    {
+      title: "YOUR LIBRARY",
+      url: "#",
+      items: [
+        {
+          title: "Saved Prompts",
+          url: "#",
+        },
+        {
+          title: "Code Snippets",
           url: "#",
           isActive: true,
         },
         {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "API Reference",
-      url: "#",
-      items: [
-        {
-          title: "Components",
-          url: "#",
-        },
-        {
-          title: "File Conventions",
-          url: "#",
-        },
-        {
-          title: "Functions",
-          url: "#",
-        },
-        {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Architecture",
-      url: "#",
-      items: [
-        {
-          title: "Accessibility",
-          url: "#",
-        },
-        {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
+          title: "Research Notes",
           url: "#",
         },
       ],
@@ -159,23 +105,55 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         {/* We create a SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {data.navMain.map((group) => {
+          const [open, setOpen] = React.useState(true);
+
+          return (
+            <Collapsible key={group.title} open={open} onOpenChange={setOpen}>
+              <SidebarGroup>
+                <SidebarGroupLabel>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between">
+                    <span>{group.title}</span>
+
+                    <ChevronRight
+                      className={`h-4 w-4 transition-all duration-300 ease-in-out ${
+                        open ? "rotate-90" : ""
+                      }`}
+                    />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+
+                <CollapsibleContent>
+                  {" "}
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {group.items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            isActive={item.isActive}
+                            className={cn(
+                              "h-10 rounded-md transition-colors duration-200",
+                              item.isActive
+                                ? "text-white"
+                                : "text-zinc-400 hover:text-zinc-300",
+                            )}
+                          >
+                            <a href={item.url}>{item.title}</a>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
       </SidebarContent>
+
+      <SidebarFooter className="h-fit w-full min-w-fit">
+        <SidebarFooterButton />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

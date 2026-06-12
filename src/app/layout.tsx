@@ -34,13 +34,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(geist.variable, "font-mono", jetbrainsMono.variable)}
+      suppressHydrationWarning
     >
       <Providers>
         <body>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
-            enableSystem
+            forcedTheme="dark"
             disableTransitionOnChange
           >
             <TRPCReactProvider>{children}</TRPCReactProvider>
