@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, pgTableCreator, primaryKey } from "drizzle-orm/pg-core";
+import { index, pgTableCreator, primaryKey, pgEnum } from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
 
 /**
@@ -106,3 +106,88 @@ export const verificationTokens = createTable(
   }),
   (t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );
+
+export const sourceTypeEnum = pgEnum
+("source_type", [
+  "pdf",
+  "image",
+  "youtube",
+  "website",
+  "none"
+]);
+
+export const spaces = createTable(
+  "space",
+  (d) => ({
+    id: d
+      .varchar({ length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: d.varchar({ length: 255 }).notNull(),
+    createdById: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id),
+    
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }))
+
+export const spacesRelations = relations(spaces, ({ one, many }) => ({
+  user: one(users, {
+    fields: [spaces.createdById],
+    references: [users.id],
+  }),
+
+  conversations: many(conversations),
+}));
+
+export const conversations = createTable(
+  "conversation",
+  (d) => ({
+    id: d
+      .varchar({ length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: d.varchar({ length: 255 }).notNull(),
+    createdById: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id),
+    spaceId: d.varchar({ length: 255 }).references(() => spaces.id),
+    attachmentType: sourceTypeEnum()
+      .notNull()
+      .default("none"),
+    url: d.text(),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("title_idx").on(t.title),
+  ]
+)
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [conversations.createdById],
+      references: [users.id],
+    }),
+
+    space: one(spaces, {
+      fields: [conversations.spaceId],
+      references: [spaces.id],
+    }),
+  })
+);
+
+
