@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import Providers from "@/components/Providers";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { type Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -26,10 +27,6 @@ const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
 });
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-});
 
 export default function RootLayout({
   children,
@@ -54,7 +51,9 @@ export default function RootLayout({
             forcedTheme="dark"
             disableTransitionOnChange
           >
-            <TRPCReactProvider>{children}</TRPCReactProvider>
+            <TRPCReactProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </TRPCReactProvider>
           </ThemeProvider>
         </body>
       </Providers>
