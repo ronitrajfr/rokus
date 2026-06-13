@@ -132,7 +132,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           <SidebarMenuButton
                             isActive={item.isActive}
                             className={cn(
-                              "h-10 rounded-md transition-colors duration-200",
+                              "h-10 rounded-md text-sm transition-colors duration-200",
                               item.isActive
                                 ? "text-white"
                                 : "text-zinc-400 hover:text-zinc-300",

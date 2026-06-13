@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import Providers from "@/components/Providers";
 import { type Metadata } from "next";
-import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono, JetBrains_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 
 import { TRPCReactProvider } from "@/trpc/react";
@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
@@ -33,7 +37,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(geist.variable, "font-mono", jetbrainsMono.variable)}
+      className={cn(
+        geist.variable,
+        "font-mono",
+        jetbrainsMono.variable,
+        "font-mono",
+        inter.variable,
+        "font-sans",
+      )}
       suppressHydrationWarning
     >
       <Providers>

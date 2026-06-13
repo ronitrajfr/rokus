@@ -1,11 +1,11 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "../_components/home/app-sidebar";
+import { AppSidebar } from "../_components/app-sidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main>
+      <main className="flex flex-1 flex-col">
         <SidebarTrigger />
         {children}
       </main>
