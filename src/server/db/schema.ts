@@ -18,7 +18,7 @@ export const posts = createTable(
     createdById: d
       .varchar({ length: 255 })
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => /* @__PURE__ */ new Date())
@@ -50,6 +50,8 @@ export const users = createTable("user", (d) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
+  spaces: many(spaces),
+  conversations: many(conversations),
 }));
 
 export const accounts = createTable(
@@ -159,11 +161,11 @@ export const conversations = createTable(
       .varchar({ length: 255 })
       .notNull()
       .references(() => users.id),
-    spaceId: d.varchar({ length: 255 }).references(() => spaces.id),
+    spaceId: d.varchar({ length: 255 }).references(() => spaces.id, { onDelete: "set null" }),
     attachmentType: sourceTypeEnum()
       .notNull()
       .default("none"),
-    url: d.text(),
+    attachmentUrl: d.text(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .$defaultFn(() => /* @__PURE__ */ new Date())
@@ -172,12 +174,14 @@ export const conversations = createTable(
   }),
   (t) => [
     index("title_idx").on(t.title),
+    index("conversation_user_idx").on(t.createdById),
+    index("conversation_space_idx").on(t.spaceId),
   ]
 )
 
 export const conversationsRelations = relations(
   conversations,
-  ({ one }) => ({
+  ({ one, many }) => ({
     user: one(users, {
       fields: [conversations.createdById],
       references: [users.id],
@@ -187,7 +191,51 @@ export const conversationsRelations = relations(
       fields: [conversations.spaceId],
       references: [spaces.id],
     }),
+
+    messages: many(messages),
   })
 );
 
+export const roleTypeEnum = pgEnum("role_type", [
+  "user",
+  "assistant",
+  "system",
+]);
+
+export const messages = createTable(
+  "message",
+  (d) => ({
+    id: d
+      .varchar({ length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    role: roleTypeEnum().notNull(),
+    message: d.text().notNull(),
+    attachmentType: sourceTypeEnum()
+      .notNull()
+      .default("none"),
+    attachmentUrl: d.text(),
+    conversationId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    createdAt: d
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("conversation_id_idx").on(t.conversationId),
+    index("message_created_at_idx").on(t.createdAt),
+  ]
+)
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+}))
 
