@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { index, pgTableCreator, primaryKey, pgEnum } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTableCreator,
+  primaryKey,
+  pgEnum,
+  unique,
+} from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
 
 /**
@@ -10,43 +16,26 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const createTable = pgTableCreator((name) => `rokus_${name}`);
 
-export const posts = createTable(
-  "post",
+export const users = createTable(
+  "user",
   (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdById: d
+    id: d
       .varchar({ length: 255 })
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: d.varchar({ length: 255 }),
+    email: d.varchar({ length: 255 }).notNull(),
+    emailVerified: d
+      .timestamp({
+        mode: "date",
+        withTimezone: true,
+      })
+      .$defaultFn(() => /* @__PURE__ */ new Date()),
+    image: d.varchar({ length: 255 }),
   }),
-  (t) => [
-    index("created_by_idx").on(t.createdById),
-    index("name_idx").on(t.name),
-  ],
+  (t) => [index("user_email_idx").on(t.email)],
 );
-
-export const users = createTable("user", (d) => ({
-  id: d
-    .varchar({ length: 255 })
-    .notNull()
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: d.varchar({ length: 255 }),
-  email: d.varchar({ length: 255 }).notNull(),
-  emailVerified: d
-    .timestamp({
-      mode: "date",
-      withTimezone: true,
-    })
-    .$defaultFn(() => /* @__PURE__ */ new Date()),
-  image: d.varchar({ length: 255 }),
-}));
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -109,35 +98,34 @@ export const verificationTokens = createTable(
   (t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );
 
-export const sourceTypeEnum = pgEnum
-("source_type", [
+export const sourceTypeEnum = pgEnum("source_type", [
   "pdf",
   "image",
   "youtube",
   "website",
-  "none"
+  "none",
 ]);
 
-export const spaces = createTable(
-  "space",
-  (d) => ({
-    id: d
-      .varchar({ length: 255 })
-      .notNull()
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    name: d.varchar({ length: 255 }).notNull(),
-    createdById: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => users.id),
-    
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }))
+export const spaces = createTable("space", (d) => ({
+  id: d
+    .varchar({ length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: d.varchar({ length: 255 }).notNull(),
+  createdById: d
+    .varchar({ length: 255 })
+    .notNull()
+    .references(() => users.id),
+
+  createdAt: d
+    .timestamp({ withTimezone: true })
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+}),
+  (t) => [unique("space_name_user_idx").on(t.name, t.createdById)],
+);
 
 export const spacesRelations = relations(spaces, ({ one, many }) => ({
   user: one(users, {
@@ -161,10 +149,10 @@ export const conversations = createTable(
       .varchar({ length: 255 })
       .notNull()
       .references(() => users.id),
-    spaceId: d.varchar({ length: 255 }).references(() => spaces.id, { onDelete: "set null" }),
-    attachmentType: sourceTypeEnum()
-      .notNull()
-      .default("none"),
+    spaceId: d
+      .varchar({ length: 255 })
+      .references(() => spaces.id, { onDelete: "set null" }),
+    attachmentType: sourceTypeEnum().notNull().default("none"),
     attachmentUrl: d.text(),
     createdAt: d
       .timestamp({ withTimezone: true })
@@ -176,8 +164,8 @@ export const conversations = createTable(
     index("title_idx").on(t.title),
     index("conversation_user_idx").on(t.createdById),
     index("conversation_space_idx").on(t.spaceId),
-  ]
-)
+  ],
+);
 
 export const conversationsRelations = relations(
   conversations,
@@ -193,7 +181,7 @@ export const conversationsRelations = relations(
     }),
 
     messages: many(messages),
-  })
+  }),
 );
 
 export const roleTypeEnum = pgEnum("role_type", [
@@ -212,9 +200,7 @@ export const messages = createTable(
       .$defaultFn(() => crypto.randomUUID()),
     role: roleTypeEnum().notNull(),
     message: d.text().notNull(),
-    attachmentType: sourceTypeEnum()
-      .notNull()
-      .default("none"),
+    attachmentType: sourceTypeEnum().notNull().default("none"),
     attachmentUrl: d.text(),
     conversationId: d
       .varchar({ length: 255 })
@@ -229,13 +215,12 @@ export const messages = createTable(
   (t) => [
     index("conversation_id_idx").on(t.conversationId),
     index("message_created_at_idx").on(t.createdAt),
-  ]
-)
+  ],
+);
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   conversation: one(conversations, {
     fields: [messages.conversationId],
     references: [conversations.id],
   }),
-}))
-
+}));
