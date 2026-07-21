@@ -198,7 +198,10 @@ export const sources = createTable(
       .notNull()
       .defaultNow(),
   }),
-  (t) => [index("source_conversation_id_idx").on(t.conversationId)],
+  (t) => [
+    index("source_conversation_id_idx").on(t.conversationId),
+    index("source_status_idx").on(t.status),
+  ],
 );
 
 export const sourcesRelations = relations(sources, ({ one, many }) => ({
@@ -236,8 +239,8 @@ export const chunks = createTable(
   }),
   (t) => [
     index("chunk_source_id_idx").on(t.sourceId),
-    // Optional but recommended once you have real data volume:
-    // index("chunk_embedding_idx").using("hnsw", t.embedding.op("vector_cosine_ops")),
+    index("chunk_embedding_idx")
+      .using("hnsw", t.embedding.op("vector_cosine_ops")),
   ],
 );
 
