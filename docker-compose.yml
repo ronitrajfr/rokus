@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: rokus-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: C-Kurvc3hqzCpM86
+      POSTGRES_DB: rokus
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - rokus_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  rokus_postgres_data:

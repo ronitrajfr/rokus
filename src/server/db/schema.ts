@@ -4,7 +4,6 @@ import {
   pgTableCreator,
   primaryKey,
   pgEnum,
-  unique,
   vector,
 } from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
