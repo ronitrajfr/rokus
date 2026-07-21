@@ -42,7 +42,11 @@ export const conversationRouter = createTRPCRouter({
 
       await inngest.send({
         name: "app/pdf.uploaded",
-        data: { sourceId: source.id, pdfUrl: input.url },
+        data: {
+          sourceId: source.id,
+          pdfUrl: input.url,
+          conversationId: conversation.id,
+        },
       });
 
       return conversation;

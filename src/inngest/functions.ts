@@ -2,7 +2,7 @@ import { inngest } from "./client";
 import { PDFDocument } from "pdf-lib";
 import { extractText } from "unpdf";
 import { db } from "@/server/db";
-import { chunks, sources } from "@/server/db/schema";
+import { chunks, conversations, sources } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { chunkPages, getEmbeddings } from "@/lib/pdf-utils";
 
@@ -13,7 +13,7 @@ const CHUNK_BATCH_SIZE = 100;
 export const processPDF = inngest.createFunction(
   { id: "process-pdf", triggers: { event: "app/pdf.uploaded" } },
   async ({ event, step }) => {
-    const { sourceId, pdfUrl } = event.data;
+    const { sourceId, pdfUrl, conversationId } = event.data;
 
     await step.run("mark-processing", async () => {
       await db
@@ -43,30 +43,34 @@ export const processPDF = inngest.createFunction(
 
         const pdfDoc = await PDFDocument.load(buffer);
         const title = pdfDoc.getTitle() ?? null;
-        if (title) {
-          await db
-            .update(sources)
-            .set({ title })
-            .where(eq(sources.id, sourceId));
-        }
 
         const { text } = await extractText(new Uint8Array(buffer));
-        return text.map((pageText, i) => ({
-          text: pageText,
-          pageNumber: i + 1,
-        }));
+        return {
+          pages: text.map((pageText, i) => ({
+            text: pageText,
+            pageNumber: i + 1,
+          })),
+          title,
+        };
       });
 
       const textChunks = await step.run("chunk-text", async () => {
-        return chunkPages(pages);
+        return chunkPages(pages.pages);
       });
 
       if (textChunks.length === 0) {
         await step.run("mark-ready-empty", async () => {
           await db
             .update(sources)
-            .set({ status: "READY" })
+            .set({ status: "READY", title: pages.title })
             .where(eq(sources.id, sourceId));
+
+          if (pages.title) {
+            await db
+              .update(conversations)
+              .set({ title: pages.title })
+              .where(eq(conversations.id, conversationId));
+          }
         });
         return { message: "PDF has no extractable text", chunksCreated: 0 };
       }
@@ -105,8 +109,15 @@ export const processPDF = inngest.createFunction(
       await step.run("mark-ready", async () => {
         await db
           .update(sources)
-          .set({ status: "READY" })
+          .set({ status: "READY", title: pages.title })
           .where(eq(sources.id, sourceId));
+
+        if (pages.title) {
+          await db
+            .update(conversations)
+            .set({ title: pages.title })
+            .where(eq(conversations.id, conversationId));
+        }
       });
 
       return {
