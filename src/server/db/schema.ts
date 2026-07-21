@@ -3,6 +3,7 @@ import {
   index,
   pgTableCreator,
   primaryKey,
+  unique,
   pgEnum,
   vector,
 } from "drizzle-orm/pg-core";
@@ -241,6 +242,7 @@ export const chunks = createTable(
     index("chunk_source_id_idx").on(t.sourceId),
     index("chunk_embedding_idx")
       .using("hnsw", t.embedding.op("vector_cosine_ops")),
+    unique("chunk_source_id_chunk_index_idx").on(t.sourceId, t.chunkIndex),
   ],
 );
 

@@ -87,15 +87,18 @@ export const processPDF = inngest.createFunction(
         for (let i = 0; i < textChunks.length; i += CHUNK_BATCH_SIZE) {
           const batch = textChunks.slice(i, i + CHUNK_BATCH_SIZE);
           const batchEmbeddings = embeddings.slice(i, i + CHUNK_BATCH_SIZE);
-          await db.insert(chunks).values(
-            batch.map((chunk, j) => ({
-              sourceId,
-              chunkIndex: i + j,
-              pageNumber: chunk.pageNumber,
-              content: chunk.content,
-              embedding: batchEmbeddings[j]!,
-            })),
-          );
+          await db
+            .insert(chunks)
+            .values(
+              batch.map((chunk, j) => ({
+                sourceId,
+                chunkIndex: i + j,
+                pageNumber: chunk.pageNumber,
+                content: chunk.content,
+                embedding: batchEmbeddings[j]!,
+              })),
+            )
+            .onConflictDoNothing();
         }
       });
 
