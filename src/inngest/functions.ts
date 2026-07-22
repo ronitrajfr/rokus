@@ -75,22 +75,26 @@ export const processPDF = inngest.createFunction(
         return { message: "PDF has no extractable text", chunksCreated: 0 };
       }
 
-      const embeddings = await step.run("generate-embeddings", async () => {
-        const embs = await getEmbeddings(textChunks.map((c) => c.content));
-        for (let i = 0; i < embs.length; i++) {
-          if (embs[i]!.length !== EMBEDDING_DIMENSION) {
-            throw new Error(
-              `Embedding dimension mismatch at chunk ${i}: expected ${EMBEDDING_DIMENSION}, got ${embs[i]!.length}`,
-            );
-          }
-        }
-        return embs;
-      });
+      const totalChunks = textChunks.length;
+      for (let i = 0; i < totalChunks; i += CHUNK_BATCH_SIZE) {
+        const batch = textChunks.slice(i, i + CHUNK_BATCH_SIZE);
+        const batchIndex = i / CHUNK_BATCH_SIZE;
+        const batchEmbeddings = await step.run(
+          `embed-batch-${batchIndex}`,
+          async () => {
+            const embs = await getEmbeddings(batch.map((c) => c.content));
+            for (let j = 0; j < embs.length; j++) {
+              if (embs[j]!.length !== EMBEDDING_DIMENSION) {
+                throw new Error(
+                  `Embedding dimension mismatch at chunk ${i + j}: expected ${EMBEDDING_DIMENSION}, got ${embs[j]!.length}`,
+                );
+              }
+            }
+            return embs;
+          },
+        );
 
-      await step.run("store-chunks", async () => {
-        for (let i = 0; i < textChunks.length; i += CHUNK_BATCH_SIZE) {
-          const batch = textChunks.slice(i, i + CHUNK_BATCH_SIZE);
-          const batchEmbeddings = embeddings.slice(i, i + CHUNK_BATCH_SIZE);
+        await step.run(`store-batch-${batchIndex}`, async () => {
           await db
             .insert(chunks)
             .values(
@@ -103,8 +107,8 @@ export const processPDF = inngest.createFunction(
               })),
             )
             .onConflictDoNothing();
-        }
-      });
+        });
+      }
 
       await step.run("mark-ready", async () => {
         await db
