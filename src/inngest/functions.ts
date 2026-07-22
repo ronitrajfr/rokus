@@ -42,7 +42,7 @@ export const processPDF = inngest.createFunction(
         }
 
         const pdfDoc = await PDFDocument.load(buffer);
-        const title = pdfDoc.getTitle() ?? null;
+        const title = pdfDoc.getTitle() ?? "Untitled";
 
         const { text } = await extractText(new Uint8Array(buffer));
         return {
