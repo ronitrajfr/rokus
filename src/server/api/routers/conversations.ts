@@ -12,43 +12,47 @@ export const conversationRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [conversation] = await ctx.db
-        .insert(conversations)
-        .values({ userId: ctx.session.user.id })
-        .returning();
+      const result = await ctx.db.transaction(async (tx) => {
+        const [conversation] = await tx
+          .insert(conversations)
+          .values({ userId: ctx.session.user.id })
+          .returning();
 
-      if (!conversation) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create conversation.",
-        });
-      }
+        if (!conversation) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create conversation.",
+          });
+        }
 
-      const [source] = await ctx.db
-        .insert(sources)
-        .values({
-          conversationId: conversation.id,
-          type: "PDF",
-          fileUrl: input.url,
-        })
-        .returning();
+        const [source] = await tx
+          .insert(sources)
+          .values({
+            conversationId: conversation.id,
+            type: "PDF",
+            fileUrl: input.url,
+          })
+          .returning();
 
-      if (!source) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create source.",
-        });
-      }
+        if (!source) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create source.",
+          });
+        }
+
+        return { conversation, source };
+      });
 
       await inngest.send({
         name: "app/pdf.uploaded",
         data: {
-          sourceId: source.id,
+          sourceId: result.source.id,
           pdfUrl: input.url,
-          conversationId: conversation.id,
+          conversationId: result.conversation.id,
         },
       });
 
-      return conversation;
+      return result.conversation;
     }),
 });
